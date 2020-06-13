@@ -77,6 +77,26 @@ def standard_derivation_estimation(ea1, len1, marks_list1):
     return sqrt(sd / (len1 - 1))
 
 
+def av_trust_interval(alpha,standard_dev,empiric_average,len):
+    quantile=1-(alpha/2)
+    inf=standard_dev-sqrt(pow(empiric_average,2)/len)*quantile
+    sup=standard_dev+sqrt(pow(empiric_average,2)/len)*quantile
+
+    return (inf,sup)
+
+def test_hypothesis_membership(standard_dev,len,u0,ea,alpha):
+    #loi de student a n-1 degré de liberté
+    test_statistique=sqrt(len)*((ea-u0)/standard_dev)
+    quantile=1-alpha/2
+    if test_statistique<quantile or test_statistique>quantile
+        return True
+    else:
+        return False
+
+
+    
+        
+
 def inferential_statistics(file_name1, file_name2):
     marks_list1 = read_file(file_name1)
     len1 = len(marks_list1)
@@ -100,9 +120,6 @@ def inferential_statistics(file_name1, file_name2):
     standard_derivation_estimation(ea1, len1, marks_list1)
     standard_derivation_estimation(ea2, len2, marks_list2)
 
-    # av_trust_interval =
-
-    a = 1
 
 
 def open_file() -> List[float]:
