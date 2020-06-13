@@ -89,22 +89,22 @@ def descriptive_statistics():
 
         print("\n***** File " + key + " *****\n")
 
-        observations_num = len(values)
+        length = len(values)
 
         # La moyenne empirique d'un échantillon est la somme de ses éléments divisée par leur nombre.
         # Si l'échantillon est noté (x1,x2,x3,....xn), sa moyenne empirique est :
         # x barre = (x1+x2+x3+....xn) / n
-        emp_avg = empiric_average(values, observations_num)
+        emp_avg = empiric_average(values, length)
 
-        sd = standard_deviation(emp_avg, values, observations_num)
-        first_quartile = percentile(values, observations_num, 25)
-        third_quartile = percentile(values, observations_num, 75)
+        sd = standard_deviation(emp_avg, values, length)
+        first_quartile = percentile(values, length, 25)
+        third_quartile = percentile(values, length, 75)
 
         # Le kurosis est le moment centré d’ordre 4 normalisé par l'écart-type élevé à la puissance 4.
-        kurtosis = moments(emp_avg, values, observations_num, sd, 4)
+        kurtosis = moments(emp_avg, values, length, sd, 4)
 
         # Le skewness est le moment centré d’ordre 3 normalisé par l'écart-type élevé au cube.
-        skewness = moments(emp_avg, values, observations_num, sd, 3)
+        skewness = moments(emp_avg, values, length, sd, 3)
 
         print('Moyenne empirique : ' + str(emp_avg))
         print('Ecart-type : ' + str(sd))
@@ -113,7 +113,7 @@ def descriptive_statistics():
         print('Kurtosis : ' + str(kurtosis))
         print('Skewness : ' + str(skewness))
 
-        histogram(values, key + 'Histogram')
+        histogram(values, key + ' Histogram')
 
     print('\nq - Quitter')
 
@@ -128,34 +128,68 @@ def inferential_statistics() -> None:
     os.system('clear')
     print('***** Statistiques inférentielles *****')
 
-    marks_list1 = open_files()
-    len1 = len(marks_list1)
-    marks_list2 = open_files()
-    len2 = len(marks_list2)
+    lists = open_files()
 
-    trust_level1 = 0.95
-    trust_level2 = 0.75
-    alpha1 = 0.05 - trust_level1
-    alpha2 = 1 - trust_level2
+    if len(lists) == 0:
+        menu()
 
-    # Une estimation de l'espérance sans biais et converge vers la moyenne empirique
-    # d'après la loi forte des grands nombres pour un échantillon assez grand.
-    ea1 = empiric_average(marks_list1, len1)
-    ea2 = empiric_average(marks_list2, len2)
+    for dictionary in lists:
+        key = list(dictionary.keys())[0]
+        values = list(dictionary.values())[0]
 
-    # Une estimation de sigma, lorsque la moyenne est inconnue, est la racine de la variance empirique corrigée.
-    sd1 = standard_deviation(ea1, marks_list1, len1)
-    sd2 = standard_deviation(ea2, marks_list2, len2)
+        print("\n***** File " + key + " *****\n")
 
-    standard_derivation_estimation(ea1, len1, marks_list1)
-    standard_derivation_estimation(ea2, len2, marks_list2)
+        trust_level = 0.0
+        mu = 0.0
 
-    avti1 = av_trust_interval(alpha1, sd1, ea1, len1)
-    avti2 = av_trust_interval(alpha2, sd2, ea2, len2)
+        while True:
+            try:
+                trust_level = float(input('trust level > '))
 
-    test1 = test_hypothesis_membership(sd1, len1, 3, ea1, alpha1)
+                if 0.0 < trust_level < 1.0:
+                    break
+                else:
+                    print('0 < trust level < 1')
+                    continue
 
-    a = 2
+            except ValueError:
+                continue
+
+        while True:
+            try:
+                mu = float(input('mu > '))
+            except ValueError:
+                continue
+            else:
+                break
+
+        length = len(values)
+        alpha = 0.05 - trust_level
+
+        # Une estimation de l'espérance sans biais et converge vers la moyenne empirique
+        # d'après la loi forte des grands nombres pour un échantillon assez grand.
+        ea = empiric_average(values, length)
+
+        # Une estimation de sigma, lorsque la moyenne est inconnue, est la racine de la variance empirique corrigée.
+        sde = standard_derivation_estimation(ea, length, values)
+        avti = av_trust_interval(alpha, sde, ea, length)
+        thm = test_hypothesis_membership(sde, length, mu, ea, alpha)
+
+        print('Estimation de l\'espérance : ' + str(ea))
+        print('Estimation de l\'écart-type : ' + str(sde))
+        print('Intervale de confiance moyen : ' + str(avti))
+        if thm:
+            print('Hypothèse d\'appartenance acceptée. ')
+        else:
+            print('Hypothèse d\'appartenance rejetée. ')
+
+    print('\nq - Quitter')
+
+    command = ''
+    while command != 'q':
+        command = input()
+
+    menu()
 
 
 def open_files() -> List[Dict[str, List[float]]]:
