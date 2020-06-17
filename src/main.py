@@ -33,9 +33,9 @@ def ask_between_0_and_1(var_name: str) -> float:
 
 def histogram(values: List[float], title: str) -> None:
     """
-    Affiche un histograme rempli avec les valeurs passées en argument.
-    :param values: valeurs avec lesquelles l'histograme sera construit.
-    :param title: titre de l'histograme.
+    Affiche un histogramme rempli avec les valeurs passées en argument.
+    :param values: valeurs avec lesquelles l'histogramme sera construit.
+    :param title: titre de l'histogramme.
     """
     n, bins, patches = plt.hist(x=values, bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85)
     plt.grid(axis='y', alpha=0.75)
@@ -122,7 +122,7 @@ class DescriptiveStatistics(object):
 
     def _get_moment(self, power: int) -> float:
         """
-        Calcule le moment en à l'ordre passé en argument.
+        Calcule le moment à l'ordre passé en argument.
         :param power: ordre pour lequel doit être calculé le moment.
         :return: le moment.
         """
@@ -255,7 +255,7 @@ def descriptive_statistics() -> None:
     """
 
     def _desc_stats(filename, values) -> None:
-        print("\n***** File " + filename + " *****\n")
+        print("\n***** Fichier " + filename + " *****\n")
 
         desc_stats = DescriptiveStatistics(values)
         print('Moyenne empirique : ' + str(desc_stats.get_empiric_average()))
@@ -264,7 +264,7 @@ def descriptive_statistics() -> None:
         print('Troisième quartile : ' + str(desc_stats.get_third_quartile()))
         print('Kurtosis : ' + str(desc_stats.get_kurtosis()))
         print('Skewness : ' + str(desc_stats.get_skewness()))
-        histogram(values, filename + ' Histogram')
+        histogram(values, 'Histogramme de ' + filename)
 
     os.system('clear')
     print('***** Statistique descriptive *****')
