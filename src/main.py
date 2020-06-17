@@ -1,46 +1,67 @@
 import os
 from math import sqrt, ceil
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import List, Tuple
+
+import scipy
+from scipy import stats
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import t
+
+''' Lecture de fichiers '''
 
 
-def read_file(file_name) -> List[float]:
-    lines = []
-    with open(file_name) as file:
+def read_file(filename: str) -> List[float]:
+    lines: List[float] = []
+    with open(filename) as file:
         for line in file:
             lines.append(float(line.strip()))
     return lines
 
 
-def empiric_average(marks, observations_num) -> float:
-    return sum(marks) / observations_num
+def open_file(message: str) -> Tuple[str, List[float]]:
+    while True:
+        file: Path = Path(input(message))
+        if file.exists() and file.is_file():
+            return str(file), read_file(str(file))
+        else:
+            print(str(file) + ' does not exists or is not a file.\n', end='')
 
 
-def standard_deviation(empiric_avg, marks_list, observations_num) -> float:
-    sd = 0.0
-    for mark in marks_list:
+''' Partie statistiques descriptives '''
+
+
+def empiric_average(values: List[float], length: int) -> float:
+    return sum(values) / length
+
+
+def standard_deviation(values: List[float], length: int) -> float:
+    sd: float = 0.0
+    empiric_avg: float = empiric_average(values, length)
+    for mark in values:
         sd += pow(mark - empiric_avg, 2)
-    return sqrt(sd / observations_num)
+    return sqrt(sd / length)
 
 
-def moments(empiric_avg, marks_list, observations_num, sd, power) -> float:
-    fourth_central_moment = 0.0
-    for mark in marks_list:
+def moments(values: List[float], length: int, power: int) -> float:
+    fourth_central_moment: float = 0.0
+    empiric_avg: float = empiric_average(values, length)
+    std_dev: float = standard_deviation(values, length)
+
+    for mark in values:
         fourth_central_moment += pow(mark - empiric_avg, power)
-    return (fourth_central_moment / observations_num) / pow(sd, power)
+    return (fourth_central_moment / length) / pow(std_dev, power)
 
 
-def percentile(marks_list, observations_num, percentile) -> float:
-    tmp = ceil(observations_num * (percentile / 100))
-    sorted_marks_list = sorted(marks_list)
-    return sorted_marks_list[tmp]
+def percentile(values: List[float], length: int, percentage: float) -> float:
+    sorted_marks_list: List[float] = sorted(values)
+    return sorted_marks_list[ceil(length * (percentage / 100))]
 
 
-def histogram(data, title):
-    n, bins, patches = plt.hist(x=data, bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85)
+def histogram(values: List[float], title: str) -> None:
+    n, bins, patches = plt.hist(x=values, bins='auto', color='#0504aa', alpha=0.7, rwidth=0.85)
     plt.grid(axis='y', alpha=0.75)
     plt.xlabel('Value')
     plt.ylabel('Frequency')
@@ -50,70 +71,79 @@ def histogram(data, title):
     plt.show()
 
 
-def standard_derivation_estimation(ea1, len1, marks_list1) -> float:
-    sd = 0.0
-    for mark in marks_list1:
-        sd += pow(mark - ea1, 2)
-    return sqrt(sd / (len1 - 1))
+''' Partie statistiques inférentielles '''
 
 
-def av_trust_interval(alpha, standard_dev, empiric_average, len) -> Tuple[float, float]:
-    quantile = 1 - (alpha / 2)
-    inf = standard_dev - sqrt(pow(empiric_average, 2) / len) * quantile
-    sup = standard_dev + sqrt(pow(empiric_average, 2) / len) * quantile
+def standard_derivation_estimation(ea: float, len: int, marks_list: List[float]) -> float:
+    sd: float = 0.0
+    for mark in marks_list:
+        sd += pow(mark - ea, 2)
+    return sqrt(sd / (len - 1))
+
+
+def av_trust_interval(alpha: float, standard_dev: float, empiric_average: float, len: int) -> Tuple[float, float]:
+    quantile: float = 1 - (alpha / 2)
+    inf: float = standard_dev - sqrt(pow(empiric_average, 2) / len) * quantile
+    sup: float = standard_dev + sqrt(pow(empiric_average, 2) / len) * quantile
     return inf, sup
 
 
-def test_hypothesis_membership(standard_dev, len, u0, ea, alpha) -> bool:
-    # loi de student a n-1 degré de liberté
-    test_statistic = sqrt(len) * ((ea - u0) / standard_dev)
-    quantile2 = 1 - alpha
+def test_hypothesis_membership(standard_dev_estimation: float, len: int, ea: float, alpha: float) -> bool:
+    u0: float = 10.5
+    test_statistic: float = sqrt(len) * ((ea - u0) / standard_dev_estimation)
+    # loi de student à n-1 degré de liberté
+    quantile2: float = t.ppf(1 - alpha, df=len - 1)
     if test_statistic > quantile2:
         return False
     else:
         return True
 
 
+def khi_square(alpha, values1, values2):
+    # Le test statistique va tendre vers une loi de chi-deux à length - 1 degré de liberté.
+    statistic_test = 0
+    length = len(values1)
+    for i in range(length):
+        statistic_test += pow(values1[i] - values2[i], 2) / (length * values2[i])
+
+    if statistic_test < scipy.stats.chi2.ppf(1 - alpha, length - 1):
+        return False
+    else:
+        return True
+
+
 def descriptive_statistics():
-    os.system('clear')
-    print('***** Statistiques descriptives *****')
-
-    lists = open_files()
-
-    if len(lists) == 0:
-        menu()
-
-    for dict in lists:
-        key = list(dict.keys())[0]
-        values = list(dict.values())[0]
-
-        print("\n***** File " + key + " *****\n")
-
+    def _desc_stats(filename, values):
+        print("\n***** File " + filename + " *****\n")
         length = len(values)
-
         # La moyenne empirique d'un échantillon est la somme de ses éléments divisée par leur nombre.
         # Si l'échantillon est noté (x1,x2,x3,....xn), sa moyenne empirique est :
         # x barre = (x1+x2+x3+....xn) / n
         emp_avg = empiric_average(values, length)
-
-        sd = standard_deviation(emp_avg, values, length)
+        sd = standard_deviation(values, length)
         first_quartile = percentile(values, length, 25)
         third_quartile = percentile(values, length, 75)
-
         # Le kurosis est le moment centré d’ordre 4 normalisé par l'écart-type élevé à la puissance 4.
-        kurtosis = moments(emp_avg, values, length, sd, 4)
-
+        kurtosis = moments(values, length, 4)
         # Le skewness est le moment centré d’ordre 3 normalisé par l'écart-type élevé au cube.
-        skewness = moments(emp_avg, values, length, sd, 3)
-
+        skewness = moments(values, length, 3)
         print('Moyenne empirique : ' + str(emp_avg))
         print('Ecart-type : ' + str(sd))
         print('Premier quartile : ' + str(first_quartile))
         print('Troisième quartile : ' + str(third_quartile))
         print('Kurtosis : ' + str(kurtosis))
         print('Skewness : ' + str(skewness))
+        histogram(values, filename + ' Histogram')
 
-        histogram(values, key + ' Histogram')
+    os.system('clear')
+    print('***** Statistiques descriptives *****')
+    print('Les fichiers doivent contenir des valeurs numériques en colonne représentant '
+          'les valeurs prises par une variable aléatoire.')
+    filename1, values1 = open_file('Fichier contenant les notes en statistiques > ')
+    filename2, values2 = open_file('Fichier contenant les notes en probabilité > ')
+
+    _desc_stats(filename1, values1)
+    _desc_stats(filename2, values2)
 
     print('\nq - Quitter')
 
@@ -125,55 +155,18 @@ def descriptive_statistics():
 
 
 def inferential_statistics() -> None:
-    os.system('clear')
-    print('***** Statistiques inférentielles *****')
-
-    lists = open_files()
-
-    if len(lists) == 0:
-        menu()
-
-    for dictionary in lists:
-        key = list(dictionary.keys())[0]
-        values = list(dictionary.values())[0]
-
-        print("\n***** File " + key + " *****\n")
-
-        trust_level = 0.0
-        mu = 0.0
-
-        while True:
-            try:
-                trust_level = float(input('trust level > '))
-
-                if 0.0 < trust_level < 1.0:
-                    break
-                else:
-                    print('0 < trust level < 1')
-                    continue
-
-            except ValueError:
-                continue
-
-        while True:
-            try:
-                mu = float(input('mu > '))
-            except ValueError:
-                continue
-            else:
-                break
+    def _inf_stats(filename: str, values: List[float], trust_level: float):
+        print("\n***** File " + filename + " *****\n")
 
         length = len(values)
-        alpha = 0.05 - trust_level
-
+        alpha_int = 1 - trust_level
         # Une estimation de l'espérance sans biais et converge vers la moyenne empirique
         # d'après la loi forte des grands nombres pour un échantillon assez grand.
         ea = empiric_average(values, length)
-
         # Une estimation de sigma, lorsque la moyenne est inconnue, est la racine de la variance empirique corrigée.
         sde = standard_derivation_estimation(ea, length, values)
-        avti = av_trust_interval(alpha, sde, ea, length)
-        thm = test_hypothesis_membership(sde, length, mu, ea, alpha)
+        avti = av_trust_interval(alpha_int, sde, ea, length)
+        thm = test_hypothesis_membership(sde, length, ea, alpha_int)
 
         print('Estimation de l\'espérance : ' + str(ea))
         print('Estimation de l\'écart-type : ' + str(sde))
@@ -183,7 +176,30 @@ def inferential_statistics() -> None:
         else:
             print('Hypothèse d\'appartenance rejetée. ')
 
-    print('\nq - Quitter')
+    os.system('clear')
+    print('***** Statistiques inférentielles *****')
+    print('Les fichiers doivent contenir des valeurs numériques en colonne représentant '
+          'les valeurs prises par une variable aléatoire.')
+
+    filename1, values1 = open_file('Fichier contenant les notes en statistiques > ')
+    trust_level1 = ask_between_0_and_1('Niveau de confiance de l\'intervale de confiance')
+    filename2, values2 = open_file('Fichier contenant les notes en probabilité > ')
+    trust_level2 = ask_between_0_and_1('Niveau de confiance de l\'intervale de confiance')
+
+    _inf_stats(filename1, values1, trust_level1)
+    _inf_stats(filename2, values2, trust_level2)
+
+    print("\nTest du khi deux : ")
+    alpha = ask_between_0_and_1("alpha")
+
+    if khi_square(alpha, values1, values2):
+        print('D\'après le test du khi-deux, l\'hypothèse de comparaison de ' + filename1
+              + ' et ' + filename2 + ' est acceptée.\n')
+    else:
+        print('D\'après le test du khi-deux, l\'hypothèse de comparaison de ' + filename1
+              + ' et ' + filename2 + ' est rejetée.\n')
+
+    print('q - Quitter')
 
     command = ''
     while command != 'q':
@@ -192,23 +208,19 @@ def inferential_statistics() -> None:
     menu()
 
 
-def open_files() -> List[Dict[str, List[float]]]:
-    res = []
-    valid_file = False
+def ask_between_0_and_1(var_name: str) -> float:
+    while True:
+        try:
+            var = float(input(var_name + ' > '))
 
-    while not valid_file:
-        files = input('filename > ')
-
-        for filename in files.split():
-            tmp = Path(filename)
-            if tmp.exists() and tmp.is_file():
-                res.append({filename: read_file(filename)})
+            if 0.0 < var < 1.0:
+                return var
             else:
-                print(str(filename) + ' does not exists or is not a file.\n', end='')
+                print('0 < ' + var_name + ' < 1')
+                continue
 
-        valid_file = True
-
-    return res
+        except ValueError:
+            continue
 
 
 def menu() -> None:
