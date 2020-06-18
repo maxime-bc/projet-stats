@@ -204,8 +204,8 @@ class InferentialStatistics(object):
         :return: l'intervalle moyen de confiance.
         """
         quantile: float = 1 - (alpha / 2)
-        inf: float = self._standard_deviation_estimation - sqrt(pow(self._empiric_average, 2) / self._length) * quantile
-        sup: float = self._standard_deviation_estimation + sqrt(pow(self._empiric_average, 2) / self._length) * quantile
+        inf: float = self._empiric_average - ((self._standard_deviation_estimation / sqrt(self._length)) * quantile)
+        sup: float = self._empiric_average + ((self._standard_deviation_estimation / sqrt(self._length)) * quantile)
         return inf, sup
 
     def test_hypothesis_membership(self, alpha: float) -> bool:
