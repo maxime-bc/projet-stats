@@ -300,9 +300,9 @@ def inferential_statistics() -> None:
         print('Estimation de l\'écart-type : ' + str(inf_stats.get_standard_deviation_estimation()))
         print('Intervale de confiance moyen : ' + str(inf_stats.get_average_trust_interval(alpha_int)))
         if inf_stats.test_hypothesis_membership(alpha_int):
-            print('Hypothèse d\'appartenance acceptée. ')
+            print('Hypothèse d\'appartenance acceptée.\n')
         else:
-            print('Hypothèse d\'appartenance rejetée. ')
+            print('Hypothèse d\'appartenance rejetée.\n')
 
     os.system('clear')
     print('***** Statistique inférentielle *****')
